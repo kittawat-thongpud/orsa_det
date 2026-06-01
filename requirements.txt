@@ -1,0 +1,20 @@
+# ORSA-Det 2027 — core deps (CUDA 12.x). Install torch FIRST via:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+# then: pip install -r requirements.txt
+torch>=2.4
+torchvision>=0.19
+numpy>=1.26
+pyyaml>=6.0
+opencv-python>=4.9
+pillow>=10.0
+tqdm>=4.66
+scipy>=1.11            # Hungarian matching (linear_sum_assignment)
+pycocotools>=2.0.7     # COCO-style mAP / AP-small/med/large
+tensorboard>=2.16      # logging backend
+rich>=13.7             # console logging
+matplotlib>=3.8        # reporting plots (curves, confusion matrix, per-class AP)
+# --- export / deploy ---
+onnx>=1.16             # ONNX export (static-K graph for TensorRT)
+onnxruntime>=1.18      # export sanity check (use onnxruntime-gpu on Orin)
+# --- optional ---
+# ultralytics>=8.3     # ONLY for YOLO26-N baseline reproduction (separate env recommended)

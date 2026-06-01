@@ -1,0 +1,73 @@
+# ORSA-Det Small on COCO128 (Ultralytics) — sanity / reporting demo profile
+# NASA-clean: every number/mode is a named, config-driven param. No magic numbers
+# live in code; the dataclass defaults are the fallback, this file the override.
+dataset:
+  format: "yolo"
+  root: "datasets/coco128"
+  class_map: "configs/coco128_classes.json"
+  train_split: "train2017"
+  val_split: "train2017"      # coco128 has one split; reuse for val (overfit demo)
+  num_classes: 80
+  img_size: 512
+
+model:
+  scale: "small"
+  aux_query_groups: 1
+  use_aux_dense: true
+  use_ste: true
+  pretrained_backbone: "yolo"   # TRANSFER TEST: warm-start CSPBackbone from YOLOv8s COCO (~97.5%). none = random init.
+
+loss:
+  lambda_surv: 1.0
+  lambda_sparse: 0.001
+  lambda_dense: 1.0
+
+# ---- augmentation (orsa.data.AugConfig) ------------------------------------
+augment:
+  hflip_p: 0.5
+  hsv_h: 0.015
+  hsv_s: 0.7
+  hsv_v: 0.4
+  mosaic_p: 0.0             # OFF: this is a 128-img overfit sanity test. mosaic's
+  mixup_p: 0.0              # never-repeating composites prevent memorization (mAP->0).
+                            # Enable mosaic/mixup only on real generalization runs (IDD).
+  mosaic_center_lo: 0.5
+  mosaic_center_hi: 1.5
+  mixup_beta: 8.0
+  min_box_size: 2.0
+  pad_color: 114
+
+# ---- optimizer (orsa.engine.OptimConfig) -----------------------------------
+optimizer:
+  name: "adamw"            # adamw | sgd | muon_hybrid
+  lr: 0.001               # overfit demo needs faster cls convergence
+  weight_decay: 0.0001
+  adamw_beta1: 0.9
+  adamw_beta2: 0.999
+  adamw_eps: 1.0e-8
+
+# ---- lr schedule (orsa.engine.SchedConfig) ---------------------------------
+schedule:
+  warmup_ratio: 0.05
+  warmup_max_steps: 1000
+  cosine_min_ratio: 0.01
+
+# ---- EMA (orsa.engine.EMAConfig) -------------------------------------------
+ema:
+  enabled: false           # short run: decay 0.9998 never warms up -> eval raw
+  decay: 0.9998
+  tau: 2000.0
+
+train:
+  device: "cuda"
+  epochs: 100
+  batch_size: 4
+  accum: 1                 # don't starve optimizer steps on tiny 128-img set
+  grad_clip: 1.0
+  amp_dtype: "bf16"
+  workers: 4
+  eval_every: 5
+
+run:
+  dir: "runs/orsa_small_coco128"
+  name: "orsa_small_coco128"

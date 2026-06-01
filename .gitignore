@@ -1,0 +1,25 @@
+# ---- python / env ----
+.venv/
+__pycache__/
+*.pyc
+
+# ---- model weights / exports ----
+*.pt
+*.pth
+*.onnx
+*.engine
+
+# ---- datasets (large, not versioned) ----
+datasets/
+*.cache
+
+# ---- training results / runs ----
+runs/
+
+# ---- logs / caches ----
+*.log
+.cache/
+data_cache/
+
+# ---- tooling state ----
+.omc/
