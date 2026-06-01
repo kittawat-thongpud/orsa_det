@@ -1,0 +1,87 @@
+# ORSA-Det Small on IDD — RTX 4090 (24GB) SERVER profile
+# Same arch/loss/aug as orsa_small_idd.yaml; only the compute budget is scaled up
+# (bigger real batch, img 640, full 300-epoch schedule to match YOLO26-N baseline).
+# NASA-clean: every number/mode is a named, config-driven param.
+dataset:
+  format: "voc"
+  # EDIT to the server's IDD path. Loader expects VOC layout:
+  #   <root>/JPEGImages/<stem>.jpg  <root>/Annotations/<stem>.xml  <root>/{train,val}.txt
+  root: "datasets/IDD_Detection"
+  class_map: "configs/idd_classes.json"
+  train_split: "train.txt"
+  val_split: "val.txt"
+  num_classes: 15
+  img_size: 640          # final-run resolution (laptop used 512 for ablation)
+
+model:
+  scale: "small"         # nano | small | base
+  aux_query_groups: 1    # Group-DETR aux (train-only)
+  use_aux_dense: true    # TAL dense aux (train-only)
+  use_ste: true
+  pretrained_backbone: "yolo"   # warm-start CSPBackbone from YOLOv8s COCO (~97.5%) | none.
+                                # Source auto-picked by scale: nano->v8n, small->v8s, base->v8m.
+
+loss:
+  lambda_surv: 1.0
+  lambda_sparse: 0.001
+  lambda_dense: 1.0
+
+# ---- augmentation (orsa.data.AugConfig) ------------------------------------
+augment:
+  hflip_p: 0.5
+  hsv_h: 0.015
+  hsv_s: 0.7
+  hsv_v: 0.4
+  mosaic_p: 1.0            # 4-image mosaic (occlusion + scale diversity)
+  mixup_p: 0.1             # 2-image blend
+  mosaic_center_lo: 0.5
+  mosaic_center_hi: 1.5
+  mixup_beta: 8.0
+  min_box_size: 2.0
+  pad_color: 114
+
+# ---- optimizer (orsa.engine.OptimConfig) -----------------------------------
+optimizer:
+  name: "adamw"           # adamw | sgd | muon_hybrid
+  lr: 0.0004              # scaled for eff batch 32 (laptop used 2e-4 @ eff 32 too; bump if you raise batch)
+  weight_decay: 0.0001
+  adamw_beta1: 0.9
+  adamw_beta2: 0.999
+  adamw_eps: 1.0e-8
+  muon_lr_mult: 100.0
+  muon_momentum: 0.95
+  muon_nesterov: true
+  muon_ns_steps: 5
+  hybrid_sgd_lr_mult: 5.0
+  hybrid_sgd_momentum: 0.9
+  hybrid_sgd_nesterov: true
+  ns_a: 3.4445
+  ns_b: -4.7750
+  ns_c: 2.0315
+  ns_eps: 1.0e-7
+
+# ---- lr schedule (orsa.engine.SchedConfig) ---------------------------------
+schedule:
+  warmup_ratio: 0.05
+  warmup_max_steps: 1000
+  cosine_min_ratio: 0.01
+
+# ---- EMA (orsa.engine.EMAConfig) -------------------------------------------
+ema:
+  enabled: true
+  decay: 0.9998
+  tau: 2000.0
+
+train:
+  device: "cuda"
+  epochs: 300            # match YOLO26-N baseline (300 ep, mAP50=0.6131 / mAP50-95=0.3996)
+  batch_size: 16         # 24GB fits 16 @ 640 comfortably; try 24/32 if VRAM headroom
+  accum: 2               # effective batch = 32 (= batch_size * accum)
+  grad_clip: 1.0
+  amp_dtype: "bf16"      # 4090 (Ada) has fast bf16
+  workers: 8             # server has more CPU; raise toward dataloader saturation
+  eval_every: 5
+
+run:
+  dir: "runs/orsa_small_idd_4090"
+  name: "orsa_small_idd_4090"
